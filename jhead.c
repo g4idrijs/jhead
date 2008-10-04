@@ -2,12 +2,12 @@
 // Program to pull the information out of various types of EXIF digital 
 // camera files and show it in a reasonably consistent way
 //
-// Version 2.8
+// Version 2.84
 //
 // Compiling under Windows:  
 //   Make sure you have Microsoft's compiler on the path, then run make.bat
 //
-// Dec 1999 - Nov 2007
+// Dec 1999 - Oct 2008
 //
 // by Matthias Wandel   www.sentex.net/~mwandel
 //--------------------------------------------------------------------------
@@ -15,7 +15,7 @@
 
 #include <sys/stat.h>
 
-#define JHEAD_VERSION "2.8"
+#define JHEAD_VERSION "2.84"
 
 // This #define turns on features that are too very specific to 
 // how I organize my photos.  Best to ignore everything inside #ifdef MATTHIAS
@@ -59,6 +59,7 @@ static unsigned FileTimeToExif = FALSE;
 static int DeleteComments = FALSE;
 static int DeleteExif = FALSE;
 static int DeleteIptc = FALSE;
+static int DeleteXmp = FALSE;
 static int DeleteUnknown = FALSE;
 static char * ThumbSaveName = NULL; // If not NULL, use this string to make up
                                     // the filename to store the thumbnail to.
@@ -101,7 +102,7 @@ static int ShowFileInfo = TRUE;     // Indicates to show standard file info
 //--------------------------------------------------------------------------
 void ErrFatal(char * msg)
 {
-    fprintf(stderr,"Error : %s\n", msg);
+    fprintf(stderr,"\nError : %s\n", msg);
     if (CurrentFile) fprintf(stderr,"in file '%s'\n",CurrentFile);
     exit(EXIT_FAILURE);
 } 
@@ -114,7 +115,7 @@ void ErrNonfatal(char * msg, int a1, int a2)
 {
     if (SupressNonFatalErrors) return;
 
-    fprintf(stderr,"Nonfatal Error : ");
+    fprintf(stderr,"\nNonfatal Error : ");
     if (CurrentFile) fprintf(stderr,"'%s' ",CurrentFile);
     fprintf(stderr, msg, a1, a2);
     fprintf(stderr, "\n");
@@ -128,7 +129,7 @@ static int FileEditComment(char * TempFileName, char * Comment, int CommentSize)
 {
     FILE * file;
     int a;
-    char QuotedPath[PATH_MAX];
+    char QuotedPath[PATH_MAX+10];
 
     file = fopen(TempFileName, "w");
     if (file == NULL){
@@ -142,8 +143,9 @@ static int FileEditComment(char * TempFileName, char * Comment, int CommentSize)
     fflush(stdout); // So logs are contiguous.
 
     {
-    char * Editor;
-    Editor = getenv("EDITOR");
+        char * Editor;
+        Editor = getenv("EDITOR");
+        if (strlen(Editor) > PATH_MAX) ErrFatal("env too long");
         if (Editor == NULL){
 #ifdef _WIN32
             Editor = "notepad";
@@ -231,11 +233,11 @@ static int ModifyDescriptComment(char * OutComment, char * SrcComment)
                                 // Overwrite old comment of same tag with new one.
                                 if (!memcmp(Line, AddComment, l+1)){
                                     TagExists = TRUE;
-                                    strcpy(Line, AddComment);
+                                    strncpy(Line, AddComment, sizeof(Line));
                                     Modified = TRUE;
                                 }
                             }
-                            strcat(OutComment, Line);
+                            strncat(OutComment, Line, MAX_COMMENT_SIZE-5-strlen(OutComment));
                             strcat(OutComment, "\n");
                             break;
                         }
@@ -250,7 +252,7 @@ static int ModifyDescriptComment(char * OutComment, char * SrcComment)
     }
 
     if (AddComment && TagExists == FALSE){
-        strcat(OutComment, AddComment);
+        strncat(OutComment, AddComment, MAX_COMMENT_SIZE-5-strlen(OutComment));
         strcat(OutComment, "\n");
         Modified = TRUE;
     }
@@ -259,7 +261,7 @@ static int ModifyDescriptComment(char * OutComment, char * SrcComment)
         // Scan date is not in the file yet, and it doesn't have one built in.  Add it.
         char Temp[30];
         sprintf(Temp, "scan_date=%s", ctime(&ImageInfo.FileDateTime));
-        strcat(OutComment, Temp);
+        strncat(OutComment, Temp, MAX_COMMENT_SIZE-5-strlen(OutComment));
         Modified = TRUE;
     }
     return Modified;
@@ -269,7 +271,7 @@ static int ModifyDescriptComment(char * OutComment, char * SrcComment)
 //--------------------------------------------------------------------------
 static int AutoResizeCmdStuff(void)
 {
-    static char CommandString[500];
+    static char CommandString[PATH_MAX+1];
     double scale;
 
     ApplyCommand = CommandString;
@@ -298,8 +300,8 @@ static int AutoResizeCmdStuff(void)
 static void DoCommand(const char * FileName, int ShowIt)
 {
     int a,e;
-    char ExecString[400];
-    char TempName[200];
+    char ExecString[PATH_MAX*2];
+    char TempName[PATH_MAX+1];
     int TempUsed = FALSE;
 
     e = 0;
@@ -407,7 +409,7 @@ static void RelativeName(char * OutFileName, const char * NamePattern, const cha
         strncat(OutFileName, OrigName, PATH_MAX);
         strncat(OutFileName, Subst+2, PATH_MAX);
     }else{
-        strcpy(OutFileName, NamePattern); 
+        strncpy(OutFileName, NamePattern, PATH_MAX); 
     }
 }
 
@@ -421,8 +423,8 @@ void RenameAssociated(const char * FileName, char * NewBaseName)
     int a;
     int PathLen;
     int ExtPos;
-    char FilePattern[_MAX_PATH];
-    char NewName[_MAX_PATH];
+    char FilePattern[_MAX_PATH+1];
+    char NewName[_MAX_PATH+1];
     struct _finddata_t finddata;
     long find_handle;
 
@@ -448,13 +450,13 @@ void RenameAssociated(const char * FileName, char * NewBaseName)
         if (!memcmp(finddata.name, "..",3)) goto next_file;
         if (finddata.attrib & _A_SUBDIR) goto next_file;
 
-        strcpy(FilePattern+PathLen, finddata.name); // full name with path
+        strncpy(FilePattern+PathLen, finddata.name, PATH_MAX-PathLen); // full name with path
 
         strcpy(NewName, NewBaseName);
         for(a = strlen(finddata.name);finddata.name[a] != '.';){
             if (--a == 0) goto next_file;
         }
-        strcat(NewName, finddata.name+a); // add extension to new name
+        strncat(NewName, finddata.name+a, _MAX_PATH-strlen(NewName)); // add extension to new name
 
         if (rename(FilePattern, NewName) == 0){
             if (!Quiet){
@@ -481,6 +483,7 @@ static void DoFileRenaming(const char * FileName)
     int a;
     struct tm tm;
     char NewBaseName[PATH_MAX*2];
+    int AddLetter = 0;
 
     for (a=0;FileName[a];a++){
         if (FileName[a] == '/' || FileName[a] == '\\'){
@@ -545,14 +548,17 @@ static void DoFileRenaming(const char * FileName)
                 }else if (pattern[a] == 'i'){
                     if (ppos >= 0 && a<ppos+4){
                         // Replace this part with a number.
-                        char pat[8];
-                        char num[16];
+                        char pat[8], num[16];
+                        int l,nl;
                         memcpy(pat, pattern+ppos, 4);
                         pat[a-ppos] = 'd'; // Replace 'i' with 'd' for '%d'
                         pat[a-ppos+1] = '\0';
                         sprintf(num, pat, FileSequence); // let printf do the number formatting.
-                        memmove(pattern+ppos+strlen(num), pattern+a+1, strlen(pattern+a+1)+1);
-                        memcpy(pattern+ppos, num, strlen(num));
+                        nl = strlen(num);
+                        l = strlen(pattern+a+1);
+                        if (ppos+nl+l+1 >= PATH_MAX) ErrFatal("str overflow");
+                        memmove(pattern+ppos+nl, pattern+a+1, l+1);
+                        memcpy(pattern+ppos, num, nl);
                         break;
                     }
                 }else if (!isdigit(pattern[a])){
@@ -568,8 +574,9 @@ static void DoFileRenaming(const char * FileName)
              tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     }
 
+    AddLetter = isdigit(NewBaseName[strlen(NewBaseName)-1]);
     for (a=0;;a++){
-        char NewName[PATH_MAX];
+        char NewName[PATH_MAX+10];
         char NameExtra[3];
         struct stat dummy;
 
@@ -579,7 +586,7 @@ static void DoFileRenaming(const char * FileName)
             // it.  This to avoid using a separator character - this because any good separator
             // is before the '.' in ascii, and so sorting the names would put the later name before
             // the name without suffix, causing the pictures to more likely be out of order.
-            if (isdigit(NewBaseName[strlen(NewBaseName)-1])){
+            if (AddLetter){
                 NameExtra[0] = (char)('a'-1+a); // Try a,b,c,d... for suffix if it ends in a letter.
             }else{
                 NameExtra[0] = (char)('0'-1+a); // Try 1,2,3,4... for suffix if it ends in a char.
@@ -609,7 +616,7 @@ static void DoFileRenaming(const char * FileName)
             break;
         }
 
-        if (a >= 9){
+        if (a > 25 || (!AddLetter && a > 9)){
             printf("Possible new names for for '%s' already exist\n",FileName);
             break;
         }
@@ -642,8 +649,8 @@ static int DoAutoRotate(const char * FileName)
                 ImageInfo.ThumbnailAtEnd){
                 // Must have a thumbnail that exists and is modifieable.
 
-                char ThumbTempName_in[PATH_MAX+4];
-                char ThumbTempName_out[PATH_MAX+4];
+                char ThumbTempName_in[PATH_MAX+5];
+                char ThumbTempName_out[PATH_MAX+5];
 
                 strcpy(ThumbTempName_in, FileName);
                 strcat(ThumbTempName_in, ".thi");
@@ -706,7 +713,14 @@ void FileTimeAsString(char * TimeStr)
 void ProcessFile(const char * FileName)
 {
     int Modified = FALSE;
-    ReadMode_t ReadMode = READ_METADATA;
+    ReadMode_t ReadMode;
+
+    if (strlen(FileName) >= PATH_MAX-1){
+        // Protect against buffer overruns in strcpy / strcat's on filename
+        ErrFatal("filename too long");
+    }
+
+    ReadMode = READ_METADATA;
     CurrentFile = FileName;
     FilesMatched = 1; 
 
@@ -870,7 +884,7 @@ void ProcessFile(const char * FileName)
                    EditComment || CommentInsertfileName || CommentInsertLiteral){
 
         Section_t * CommentSec;
-        char Comment[1001];
+        char Comment[MAX_COMMENT_SIZE+1];
         int CommentSize;
 
         CommentSec = FindSection(M_COM);
@@ -886,9 +900,9 @@ void ProcessFile(const char * FileName)
         }
 
         CommentSize = CommentSec->Size-2;
-        if (CommentSize > 1000){
-            fprintf(stderr, "Truncating comment at 1000 chars\n");
-            CommentSize = 1000;
+        if (CommentSize > MAX_COMMENT_SIZE){
+            fprintf(stderr, "Truncating comment at %d chars\n",MAX_COMMENT_SIZE);
+            CommentSize = MAX_COMMENT_SIZE;
         }
 
         if (CommentInsertfileName){
@@ -910,11 +924,11 @@ void ProcessFile(const char * FileName)
                 if (CommentSize < 0) CommentSize = 0;
             }
         }else if (CommentInsertLiteral){
-            strncpy(Comment, CommentInsertLiteral, 1000);
+            strncpy(Comment, CommentInsertLiteral, MAX_COMMENT_SIZE);
             CommentSize = strlen(Comment);
         }else{
 #ifdef MATTHIAS
-            char CommentZt[1001];
+            char CommentZt[MAX_COMMENT_SIZE+1];
             memcpy(CommentZt, (char *)CommentSec->Data+2, CommentSize);
             CommentZt[CommentSize] = '\0';
             if (ModifyDescriptComment(Comment, CommentZt)){
@@ -926,7 +940,7 @@ void ProcessFile(const char * FileName)
             memcpy(Comment, (char *)CommentSec->Data+2, CommentSize);
 #endif
             {
-                char EditFileName[PATH_MAX+4];
+                char EditFileName[PATH_MAX+5];
                 strcpy(EditFileName, FileName);
                 strcat(EditFileName, ".txt");
 
@@ -1040,13 +1054,16 @@ skip_unixtime:
     if (DeleteIptc){
         if (RemoveSectionType(M_IPTC)) Modified = TRUE;
     }
+    if (DeleteXmp){
+        if (RemoveSectionType(M_XMP)) Modified = TRUE;
+    }
     if (DeleteUnknown){
         if (RemoveUnknownSections()) Modified = TRUE;
     }
 
 
     if (Modified){
-        char BackupName[400];
+        char BackupName[PATH_MAX+5];
         struct stat buf;
 
         if (!Quiet) printf("Modified: %s\n",FileName);
@@ -1126,7 +1143,7 @@ badtime:
 static void Usage (void)
 {
     printf("Jhead is a program for manipulating settings and thumnails in Exif jpeg headers\n"
-           "used by most Digital Cameras.  v"JHEAD_VERSION" Matthias Wandel, Nov 13 2007.\n"
+           "used by most Digital Cameras.  v"JHEAD_VERSION" Matthias Wandel, Oct 4 2008.\n"
            "http://www.sentex.net/~mwandel/jhead\n"
            "\n");
 
@@ -1141,6 +1158,7 @@ static void Usage (void)
            "  -dc        Delete comment field (as left by progs like Photoshop & Compupic)\n"
            "  -de        Strip Exif section (smaller JPEG file, but lose digicam info)\n"
            "  -di        Delete IPTC section (from Photoshop, or Picasa)\n"
+           "  -dx        Deletex XMP section\n"
            "  -du        Delete non image sections except for Exif and comment sections\n"
            "  -purejpg   Strip all unnecessary data from jpeg (combines -dc -de and -du)\n"
            "  -mkexif    Create new minimal exif section (overwrites pre-existing exif)\n"
@@ -1332,6 +1350,9 @@ int main (int argc, char **argv)
         }else if (!strcmp(arg,"-di")){
             DeleteIptc = TRUE;
             DoModify = TRUE;
+        }else if (!strcmp(arg,"-dx")){
+            DeleteXmp = TRUE;
+            DoModify = TRUE;
         }else if (!strcmp(arg, "-du")){
             DeleteUnknown = TRUE;
             DoModify = TRUE;
@@ -1340,6 +1361,7 @@ int main (int argc, char **argv)
             DeleteComments = TRUE;
             DeleteIptc = TRUE;
             DeleteUnknown = TRUE;
+            DeleteXmp = TRUE;
             DoModify = TRUE;
         }else if (!strcmp(arg,"-ce")){
             EditComment = TRUE;
