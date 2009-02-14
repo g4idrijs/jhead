@@ -8,7 +8,7 @@ Windows / Mac users:  Jhead has <b>no Graphical User Interface</b>.  Clicking on
 or Mac OS-X won't do anything for you - you have to <b>use it from the Command prompt</b> 
 (or DOS prompt under Win9x)
 
-<h3>Jhead v2.84 program Features</h3>
+<h3>Jhead v2.86 program Features</h3>
 <ul>
 <li>Extracting camera settings from Exif image files
 <li>Able to set and/or adjust the Exif time field
@@ -117,6 +117,9 @@ or Mac OS-X won't do anything for you - you have to <b>use it from the Command p
     strftime function for formatting.  In addition, if the format string contains '%f', this will
     substitute the original name of the file (minus extension).
     <br>
+    If the name includes '/' or '\' (under windows), this is interpreted as a new path for
+    the file.  If the new path does not exist, the path will be created.
+    <br>
     A sequence number may also be included by including '%i' in the format string.  Leading
     zeros can be specified.  '%03i' for example will pad the numbers to '001', '002'...
     this works just like printf in C, but with '%i' instead of '%d'.
@@ -126,8 +129,8 @@ or Mac OS-X won't do anything for you - you have to <b>use it from the Command p
     <br>
     This feature is especially useful if more than one digital camera was used to take pictures
     of an event.  By renaming them to a scheme according to date, they will automatically
-    appear in order of taking when viewed with some sort of viewer like Compupic or AcdSee, and
-    sorted by name.  Or you could use the -ft option and sort by date.
+    appear in order of taking when viewed with some sort of viewer like Xnview or AcdSee, and
+    sorted by name.  Or you could use the -ft option and view the images sorted by date.
     <p>
     <b>Some of the more useful arguments for strftime are:</b>
 
@@ -195,7 +198,7 @@ or Mac OS-X won't do anything for you - you have to <b>use it from the Command p
     how many days the timestamp needs to be adjusted by, including leap years and daylight
     savings time changes.
     The dates are specified as yyyy:mm:dd.  For sub-day adjustments, a time of day can also
-    be included, by specifying yyyy:nn:dd+hh:mm or yyyy:mm:dd+hh:mm:ss
+    be included, by specifying yyyy:nn:dd/hh:mm or yyyy:mm:dd/hh:mm:ss
     <p>
     Examples:<br>
     Year on camera was set to 2005 instead of 2004 for pictures taken in April
@@ -495,6 +498,6 @@ Linux distributions as part of the libjpg package (along with jpegtran)
 </ul>
 <p><br>
 Jhead homeage: <a href="http://www.sentex.net/~mwandel/jhead">http://www.sentex.net/~mwandel/jhead</a><br>
-Last Updateed: Oct 4 2008
+Last Updateed: Feb 14 2009
 
 
