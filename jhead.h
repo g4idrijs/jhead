@@ -66,6 +66,17 @@ extern int DumpExifMap;
 typedef struct {
     char  FileName     [PATH_MAX+1];
     time_t FileDateTime;
+
+    struct {
+        // Info in the jfif header.
+        // This info is not used much - jhead used to just replace it with default
+        // values, and over 10 years, only two people pointed this out.
+        char  Present;
+        char  ResolutionUnits;
+        short XDensity;
+        short YDensity;
+    }JfifHeader;
+
     unsigned FileSize;
     char  CameraMake   [32];
     char  CameraModel  [40];
@@ -91,8 +102,12 @@ typedef struct {
     int   LightSource;
     int   DistanceRange;
 
+    float xResolution;
+    float yResolution;
+    int   ResolutionUnit;
+
     char  Comments[MAX_COMMENT_SIZE];
-    int   CommentWidchars; // If nonzer, widechar comment, indicates number of chars.
+    int   CommentWidthchars; // If nonzero, widechar comment, indicates number of chars.
 
     unsigned ThumbnailOffset;          // Exif offset to thumbnail
     unsigned ThumbnailSize;            // Size of thumbnail.

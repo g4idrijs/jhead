@@ -2,12 +2,12 @@
 // Program to pull the information out of various types of EXIF digital 
 // camera files and show it in a reasonably consistent way
 //
-// Version 2.86
+// Version 2.88
 //
 // Compiling under Windows:  
 //   Make sure you have Microsoft's compiler on the path, then run make.bat
 //
-// Dec 1999 - Mar 2009
+// Dec 1999 - Nov 2009
 //
 // by Matthias Wandel   www.sentex.net/~mwandel
 //--------------------------------------------------------------------------
@@ -15,7 +15,7 @@
 
 #include <sys/stat.h>
 
-#define JHEAD_VERSION "2.87"
+#define JHEAD_VERSION "2.88"
 
 // This #define turns on features that are too very specific to 
 // how I organize my photos.  Best to ignore everything inside #ifdef MATTHIAS
@@ -351,11 +351,19 @@ static void DoCommand(const char * FileName, int ShowIt)
     while(a > 0 && FileName[a-1] != SLASH) a--;
     memcpy(TempName, FileName, a);
     strcpy(TempName+a, "XXXXXX");
+
+    // Note: Compiler will warn about mkstemp.  but I need a filename, not a file.
+    // I could just then get the fiel name from what mkstemp made, and pass that
+    // to the executable, but that would make for the exact same vulnerability
+    // as mktemp - that is, that between getting the random name, and making the file
+    // some other program could snatch that exact same name!
+    // also, not all pltforms support mkstemp.
     mktemp(TempName);
+
+
     if(!TempName[0]) {
         ErrFatal("Cannot find available temporary file name");
     }
-
 
 
     // Build the exec string.  &i and &o in the exec string get replaced by input and output files.
@@ -1199,7 +1207,7 @@ badtime:
 static void Usage (void)
 {
     printf("Jhead is a program for manipulating settings and thumnails in Exif jpeg headers\n"
-           "used by most Digital Cameras.  v"JHEAD_VERSION" Matthias Wandel, Mar 02 2009.\n"
+           "used by most Digital Cameras.  v"JHEAD_VERSION" Matthias Wandel, Nov 06 2009.\n"
            "http://www.sentex.net/~mwandel/jhead\n"
            "\n");
 
