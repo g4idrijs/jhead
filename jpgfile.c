@@ -357,7 +357,13 @@ int ReadJpegFile(const char * FileName, ReadMode_t ReadMode)
     // Scan the JPEG headers.
     ret = ReadJpegSections(infile, ReadMode);
     if (!ret){
-        fprintf(stderr,"Not JPEG: %s\n",FileName);
+        if (ReadMode == READ_ANY){
+            // Process any files mode.  Ignore the fact that it's not
+            // a jpeg file.
+            ret = TRUE;
+        }else{
+            fprintf(stderr,"Not JPEG: %s\n",FileName);
+        }
     }
 
     fclose(infile);
@@ -696,12 +702,17 @@ Section_t * CreateSection(int SectionType, unsigned char * Data, int Size)
     Section_t * NewSection;
     int a;
     int NewIndex;
-    NewIndex = 2;
 
-    if (SectionType == M_EXIF) NewIndex = 0; // Exif alwas goes first!
-
-    // Insert it in third position - seems like a safe place to put 
-    // things like comments.
+    NewIndex = 0; // Figure out where to put the comment section.
+    if (SectionType == M_EXIF){
+        // Exif alwas goes first!
+    }else{
+        for (;NewIndex < 3;NewIndex++){ // Maximum fourth position (just for the heck of it)
+            if (Sections[NewIndex].Type == M_JFIF) continue; // Put it after Jfif
+            if (Sections[NewIndex].Type == M_EXIF) continue; // Put it after Exif
+            break;
+        }
+    }
 
     if (SectionsRead < NewIndex){
         ErrFatal("Too few sections!");

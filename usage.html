@@ -8,7 +8,7 @@ Windows / Mac users:  Jhead has <b>no Graphical User Interface</b>.  Clicking on
 or Mac OS-X won't do anything for you - you have to <b>use it from the Command prompt</b> 
 
 
-<h3>Jhead v2.90 program Features</h3>
+<h3>Jhead v2.93 program Features</h3>
 <ul>
 <li>Extracting camera settings from Exif image files
 <li>Able to set and/or adjust the Exif time field
@@ -105,10 +105,6 @@ or Mac OS-X won't do anything for you - you have to <b>use it from the Command p
 <td>This option causes files to be renamed and/or moved according to the Exif header "DateTimeOriginal" field.
     If the file is not an Exif file, or the DateTimeOriginal does not contain a valid value, 
     the file date is used.
-    Renaming is by default restricted to files whose names consist largely of digits.
-    This effectively restricts renaming to files that have not already been manually renamed, as
-    the default sequential names from digital cameras consist largely of digits.
-    Use the -nf option to force renaming of all files.
     <p>
     If the name includes '/' or '\' (under windows), this is interpreted as a new path for
     the file.  If the new path does not exist, the path will be created.
@@ -159,9 +155,6 @@ or Mac OS-X won't do anything for you - you have to <b>use it from the Command p
     to the strftime function (not listed here) produce strings with characters such as '/' and ':' that
     may not be valid as part of a filename on various systems.
 
-<tr valign=top><td><b>-nf
-<td>Same as '-n' but renames files regardless of original file name.
-
 <tr valign=top><td><b>-a
 <td>(Windows only option).  Rename files with the same name but different extension as well.
     This is useful for renaming .AVI files based on Exif file in .THM, or to rename sound annotation
@@ -200,7 +193,7 @@ or Mac OS-X won't do anything for you - you have to <b>use it from the Command p
     be included, by specifying yyyy:nn:dd/hh:mm or yyyy:mm:dd/hh:mm:ss
     <p>
     Examples:<br>
-    Year on camera was set to 2005 instead of 2004 for pictures taken in April
+    Year on camera was set to 2004 instead of 2005 for pictures taken in April
     <ul>jhead -da2005:03:01-2004:03:01</ul>
     Default camera date is 2002:01:01, and date was reset on 2005:05:29 at 11:21 am
     <ul>jhead -da2005:05:29/11:21-2002:01:01</ul>
@@ -446,7 +439,7 @@ There's a fancier version, with pre-built Windows binaries and a lossless croppi
 <ul>
 <a href="http://www.xnview.com">XnView</a> is an excellent, small, fast, and free graphical image browser.
 It makes use of jpeg thumbnails for the thumbnail view.  On account of Xnview, I added
-options to fix or regenerate the thumbnails to jhead, so that I could regenerate the thumnails
+options to fix or regenerate the thumbnails to jhead, so that I could regenerate the thumbnails
 for images where the thumbnail had gotten out of sync with the image.
 <br>
 Mac and Linux versions of XnView are also available.
@@ -461,6 +454,6 @@ Linux distributions as part of the libjpg package (along with jpegtran)
 </ul>
 <p><br>
 Jhead homeage: <a href="http://www.sentex.net/~mwandel/jhead">http://www.sentex.net/~mwandel/jhead</a><br>
-Last Updated: Feb 05 2010
+Last Updated: Dec 03 2011
 
 

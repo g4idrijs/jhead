@@ -1,4 +1,4 @@
-.TH JHEAD 1 "05 Feb 2010" "jhead 2.90"
+.TH JHEAD 1 "03 Dec 2011" "jhead 2.93"
 .SH NAME
 jhead \- Digicam JPEG Exif header manipulation tool
 .SH SYNOPSIS
@@ -47,11 +47,11 @@ will substitute the original  filename for this name. This allows
 creating a jhead 'relative name' when doing a whole batch  of files. For
 example, the incantation:
 
-.B jhead \-te "originals/&i" *.jpg
+.I jhead \-te """originals/&i"" *.jpg
 
 would transfer the exif header for each .jpg file in the originals
-directory by the same name, Both Win32 and most Unix shells treat the
-'&' character in a special way, so you have to put quotes around that
+directory by the same name, Both Win32 and most Unix shells treat the '&'
+character in a special way, so you have to put quotes around that
 command line option for the '&' to even be passed to the program.
 
 .TP
@@ -126,7 +126,7 @@ files whose names consist largely of digits.  This effectively restricts
 renaming to files that have not already been manually renamed, as the
 default sequential names from digital cameras consist largely of digits.
 Use the
-.B \-nf
+.B \-n
 option to force renaming of all files.  If the new name contains a '/',
 this will be interpreted as a new path, and the file will be moved
 accordingly.
@@ -179,18 +179,14 @@ Some of the more useful arguments for strftime are:
 
 Example:
 
-.B jhead \-n%Y%m%d\-%H%M%S *.jpg
+.I jhead \-n%Y%m%d\-%H%M%S *.jpg
+
 This will rename files matched by *.jpg in the format YYYYMMDD\-HHMMSS
 
 For a full listing of strftime arguments, look up the strftime in them
 man pages.  Note that some arguments to the strftime function (not
 listed here) produce strings with characters such as ':' that may not be
 valid as part of a filename on some systems.
-
-.TP
-.B \-nf
-Same as '\-n' but renames files regardless of original file name.
-
 
 .TP
 .B \-ta<+|\-><timediff>
@@ -274,13 +270,13 @@ will substitute the original filename for this name.  This allows
 creating a 'relative name' when doing a whole batch of files.  For
 example, the incantation:
 
-.B jhead \-st "thumbnails/&i" *.jpg
+.I jhead \-st """thumbnails/&i"" *.jpg
 
 would create a thumbnail for each .jpg file in the thumbnails directory
 by the same name, (provided that the thumbnails directory exists, of
 course).  Both Win32 and UNIX shells treat the '&'character in a special
-way, so you have to put quotes around that command line option for the
-'&' to even be passed to the program.
+way, so you have to put quotes around that command line option for the '&'
+to even be passed to the program.
 
 If a '\-' is specified for the output file, the thumbnail is sent to
 stdout. (UNIX build only)
@@ -358,9 +354,7 @@ by the Exif image information, contains the substring specified in the
 argument after '\-model'.  For example, the following command will list
 only images that are from an S100 camera:
 
-.B jhead \-model S100 *.jpg
-
-.B jhead \-model S100 *.jpg
+.I jhead \-model S100 *.jpg
 
 I use this option to restrict my JPEG recompensing to those images that
 came from my Canon S100 digicam, (see the \-cmd option).
@@ -384,9 +378,9 @@ Example use:
 
 Having a whole directory of photos from my S100, I run the following commands:
 
-.B jhead \-cmd "mogrify \-quality 80 &i" \-model S100 \-r *.jpg
+.I jhead \-cmd """mogrify \-quality 80 &i"" \-model S100 *.jpg
 .br
-.B jhead \-cmd "jpegtran \-progressive &i > &o" \-r *.jpg
+.I jhead \-cmd """jpegtran \-progressive &i > &o"" *.jpg
 
 The first command mogrifies all JPEGs in the tree that indicate that
 they are from a Canon S100 in their Exif header to 80% quality at the

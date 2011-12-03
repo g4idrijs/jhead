@@ -550,13 +550,11 @@ static void ProcessExifDir(unsigned char * DirStart, unsigned char * OffsetBase,
             // Show tag name
             for (a=0;;a++){
                 if (a >= TAG_TABLE_SIZE){
-                    printf(IndentString);
-                    printf("    Unknown Tag %04x Value = ", Tag);
+                    printf("%s    Unknown Tag %04x Value = ", IndentString, Tag);
                     break;
                 }
                 if (TagTable[a].Tag == Tag){
-                    printf(IndentString);
-                    printf("    %s = ",TagTable[a].Desc);
+                    printf("%s    %s = ",IndentString, TagTable[a].Desc);
                     break;
                 }
             }
@@ -1222,7 +1220,7 @@ const char * ClearOrientation(void)
 
             case FMT_ULONG:     
             case FMT_SLONG:     
-                memset(OrientationPtr, 0, 4);
+                memset(OrientationPtr[a], 0, 4);
                 // Can't be bothered to write  generic Put32 if I only use it once.
                 if (MotorolaOrder){
                     ((uchar *)OrientationPtr[a])[3] = 1;
