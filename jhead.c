@@ -2,12 +2,12 @@
 // Program to pull the information out of various types of EXIF digital 
 // camera files and show it in a reasonably consistent way
 //
-// Version 2.95
+// Version 2.96
 //
 // Compiling under Windows:  
 //   Make sure you have Microsoft's compiler on the path, then run make.bat
 //
-// Dec 1999 - Mar 2012
+// Dec 1999 - Jun 2012
 //
 // by Matthias Wandel   www.sentex.net/~mwandel
 //--------------------------------------------------------------------------
@@ -15,7 +15,7 @@
 
 #include <sys/stat.h>
 
-#define JHEAD_VERSION "2.95"
+#define JHEAD_VERSION "2.96"
 
 // This #define turns on features that are too very specific to 
 // how I organize my photos.  Best to ignore everything inside #ifdef MATTHIAS
@@ -807,7 +807,7 @@ void ProcessFile(const char * FileName)
         }
     }
 
-    if (DoModify || RenameToDate || Exif2FileTime){
+    if ((DoModify & MODIFY_ANY) || RenameToDate || Exif2FileTime){
         if (access(FileName, 2 /*W_OK*/)){
             printf("Skipping readonly file '%s'\n",FileName);
             return;
@@ -1168,13 +1168,11 @@ skip_unixtime:
             struct tm tm;
             time_t UnixTime;
             struct utimbuf mtime;
-            if (!Exif2tm(&tm, ImageInfo.DateTime)) goto badtime;
-
+          if (!Exif2tm(&tm, ImageInfo.DateTime)) goto badtime;
             UnixTime = mktime(&tm);
             if ((int)UnixTime == -1){
                 goto badtime;
             }
-
             mtime.actime = UnixTime;
             mtime.modtime = UnixTime;
 
@@ -1207,7 +1205,7 @@ badtime:
 static void Usage (void)
 {
     printf("Jhead is a program for manipulating settings and thumbnails in Exif jpeg headers\n"
-           "used by most Digital Cameras.  v"JHEAD_VERSION" Matthias Wandel, Mar 16 2012.\n"
+           "used by most Digital Cameras.  v"JHEAD_VERSION" Matthias Wandel, Jun 22 2012.\n"
            "http://www.sentex.net/~mwandel/jhead\n"
            "\n");
 
@@ -1242,6 +1240,10 @@ static void Usage (void)
            "             date otherwise.  If the optional format-string is not supplied,\n"
            "             the format is mmdd-hhmmss.  If a format-string is given, it is\n"
            "             is passed to the 'strftime' function for formatting\n"
+           "             %%d Day of month    %%H Hour (24-hour)\n"
+           "             %%m Month number    %%M Minute    %%S Second\n"
+           "             %%y Year (2 digit 00 - 99)        %%Y Year (4 digit 1980-2036)\n"
+           "             For more arguments, look up the 'strftime' function.\n"
            "             In addition to strftime format codes:\n"
            "             '%%f' as part of the string will include the original file name\n"
            "             '%%i' will include a sequence number, starting from 1. You can\n"
@@ -1513,6 +1515,7 @@ int main (int argc, char **argv)
             #endif
         }else if (!strcmp(arg,"-ft")){
             Exif2FileTime = TRUE;
+            DoModify |= MODIFY_ANY;
         }else if (!memcmp(arg,"-ta",3)){
             // Time adjust feature.
             int hours, minutes, seconds, n;
