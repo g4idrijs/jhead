@@ -2,28 +2,29 @@
 // Program to pull the information out of various types of EXIF digital 
 // camera files and show it in a reasonably consistent way
 //
-// Version 2.96
+// Version 2.97
 //
 // Compiling under Windows:  
 //   Make sure you have Microsoft's compiler on the path, then run make.bat
 //
-// Dec 1999 - Jun 2012
+// Dec 1999 - Jan 2013
 //
 // by Matthias Wandel   www.sentex.net/~mwandel
 //--------------------------------------------------------------------------
+#ifdef _WIN32
+    #include <io.h>
+#endif
+
 #include "jhead.h"
 
 #include <sys/stat.h>
 
-#define JHEAD_VERSION "2.96"
+#define JHEAD_VERSION "2.97"
 
 // This #define turns on features that are too very specific to 
 // how I organize my photos.  Best to ignore everything inside #ifdef MATTHIAS
 //#define MATTHIAS
 
-#ifdef _WIN32
-    #include <io.h>
-#endif
 
 // Bitmasks for DoModify:
 #define MODIFY_ANY  1
@@ -31,7 +32,7 @@
 #define JPEGS_ONLY  4
 #define MODIFY_JPEG 5
 #define READ_JPEG   6
-static int DoModify     = FALSE;
+static int DoModify  = FALSE;
 
 
 static int FilesMatched;
@@ -108,7 +109,7 @@ static int ShowFileInfo = TRUE;     // Indicates to show standard file info
 //--------------------------------------------------------------------------
 // Error exit handler
 //--------------------------------------------------------------------------
-void ErrFatal(char * msg)
+void ErrFatal(const char * msg)
 {
     fprintf(stderr,"\nError : %s\n", msg);
     if (CurrentFile) fprintf(stderr,"in file '%s'\n",CurrentFile);
@@ -119,7 +120,7 @@ void ErrFatal(char * msg)
 // Report non fatal errors.  Now that microsoft.net modifies exif headers,
 // there's corrupted ones, and there could be more in the future.
 //--------------------------------------------------------------------------
-void ErrNonfatal(char * msg, int a1, int a2)
+void ErrNonfatal(const char * msg, int a1, int a2)
 {
     if (SupressNonFatalErrors) return;
 
@@ -267,7 +268,7 @@ static int ModifyDescriptComment(char * OutComment, char * SrcComment)
 
     if (!HasScandate && !ImageInfo.DateTime[0]){
         // Scan date is not in the file yet, and it doesn't have one built in.  Add it.
-        char Temp[30];
+        char Temp[40];
         sprintf(Temp, "scan_date=%s", ctime(&ImageInfo.FileDateTime));
         strncat(OutComment, Temp, MAX_COMMENT_SIZE-5-strlen(OutComment));
         Modified = TRUE;
@@ -281,20 +282,21 @@ static int AutoResizeCmdStuff(void)
 {
     static char CommandString[PATH_MAX+1];
     double scale;
+    float TargetSize = 1600;
 
     ApplyCommand = CommandString;
 
-    if (ImageInfo.Height <= 1280 && ImageInfo.Width <= 1280){
+    scale = TargetSize / ImageInfo.Width;
+    if (TargetSize / ImageInfo.Height > scale) scale = TargetSize  / ImageInfo.Width;
+
+    if (scale > 0.8){
         printf("not resizing %dx%x '%s'\n",ImageInfo.Height, ImageInfo.Width, ImageInfo.FileName);
         return FALSE;
     }
 
-    scale = 1024.0 / ImageInfo.Height;
-    if (1024.0 / ImageInfo.Width < scale) scale = 1024.0 / ImageInfo.Width;
+    if (scale < 0.4) scale = 0.4; // Don't scale down by too much.
 
-    if (scale < 0.5) scale = 0.5; // Don't scale down by more than a factor of two.
-
-    sprintf(CommandString, "mogrify -geometry %dx%d -quality 85 &i",(int)(ImageInfo.Width*scale), (int)(ImageInfo.Height*scale));
+    sprintf(CommandString, "mogrify -geometry %dx%d -quality 80 &i",(int)(ImageInfo.Width*scale), (int)(ImageInfo.Height*scale));
     return TRUE;
 }
 
@@ -774,7 +776,7 @@ void FileTimeAsString(char * TimeStr)
 //--------------------------------------------------------------------------
 // Do selected operations to one file at a time.
 //--------------------------------------------------------------------------
-void ProcessFile(const char * FileName)
+static void ProcessFile(const char * FileName)
 {
     int Modified = FALSE;
     ReadMode_t ReadMode;
@@ -1205,7 +1207,7 @@ badtime:
 static void Usage (void)
 {
     printf("Jhead is a program for manipulating settings and thumbnails in Exif jpeg headers\n"
-           "used by most Digital Cameras.  v"JHEAD_VERSION" Matthias Wandel, Jun 22 2012.\n"
+           "used by most Digital Cameras.  v"JHEAD_VERSION" Matthias Wandel, Jan 30 2013.\n"
            "http://www.sentex.net/~mwandel/jhead\n"
            "\n");
 
@@ -1260,7 +1262,7 @@ static void Usage (void)
            "             Use together with -n to rename .AVI files from exif in .THM files\n"
            "             for example\n"
            "  -ta<+|->h[:mm[:ss]]\n"
-           "             Adjust time by h:mm backwards or forwards.  Useful when having\n"
+           "             Adjust time by h:mm forwards or backwards.  Useful when having\n"
            "             taken pictures with the wrong time set on the camera, such as when\n"
            "             traveling across time zones or DST changes. Dates can be adjusted\n"
            "             by offsetting by 24 hours or more.  For large date adjustments,\n"
@@ -1360,7 +1362,7 @@ static void Usage (void)
 //--------------------------------------------------------------------------
 // Parse specified date or date+time from command line.
 //--------------------------------------------------------------------------
-time_t ParseCmdDate(char * DateSpecified)
+static time_t ParseCmdDate(char * DateSpecified)
 {
     int a;
     struct tm tm;
@@ -1584,7 +1586,7 @@ int main (int argc, char **argv)
             if (c) *c = ' '; // Replace '-' with a space.
             
             if (!Exif2tm(&tm, arg+3)){
-                ErrFatal("-ts option must be followed by time in format yyyy:mmm:dd-hh:mm:ss\n"
+                ErrFatal("-ts option must be followed by time in format yyyy:mm:dd-hh:mm:ss\n"
                         "Example: jhead -ts2001:01:01-12:00:00 foo.jpg");
             }
 

@@ -98,7 +98,7 @@ static void process_SOFn (const uchar * Data, int marker)
 //--------------------------------------------------------------------------
 // Check sections array to see if it needs to be increased in size.
 //--------------------------------------------------------------------------
-void CheckSectionsAllocated(void)
+static void CheckSectionsAllocated(void)
 {
     if (SectionsRead > SectionsAllocated){
         ErrFatal("allocation screwup");
@@ -143,6 +143,9 @@ int ReadJpegSections (FILE * infile, ReadMode_t ReadMode)
         for (a=0;;a++){
             marker = fgetc(infile);
             if (marker != 0xff && prev == 0xff) break;
+            if (marker == EOF){
+                ErrFatal("Unexpected end of file");
+            }
             prev = marker;
         }
 
@@ -155,6 +158,9 @@ int ReadJpegSections (FILE * infile, ReadMode_t ReadMode)
         // Read the length of the section.
         lh = fgetc(infile);
         ll = fgetc(infile);
+        if (lh == EOF || ll == EOF){
+            ErrFatal("Unexpected end of file");
+        }
 
         itemlen = (lh << 8) | ll;
 
@@ -211,6 +217,17 @@ int ReadJpegSections (FILE * infile, ReadMode_t ReadMode)
                     HaveAll = 1;
                 }
                 return TRUE;
+
+            case M_DQT:
+                // Use for jpeg quality guessing
+                process_DQT(Data, itemlen);
+                break;
+
+            case M_DHT:   
+                // Use for jpeg quality guessing
+                process_DHT(Data, itemlen);
+                break;
+
 
             case M_EOI:   // in case it's a tables-only JPEG stream
                 fprintf(stderr,"No image in jpeg!\n");

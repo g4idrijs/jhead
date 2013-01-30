@@ -6,8 +6,6 @@
 // where they get used as possible, so include files only get stuff that 
 // gets used in more than one file.
 //--------------------------------------------------------------------------
-#define _CRT_SECURE_NO_DEPRECATE 1
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,6 +17,13 @@
 
 #ifdef _WIN32
     #include <sys/utime.h>
+
+    // Make the Microsoft Visual c 10 deprecate warnings go away.
+    // The _CRT_SECURE_NO_DEPRECATE doesn't do the trick like it should.
+    #define unlink _unlink
+    #define chmod _chmod
+    #define access _access
+    #define mktemp _mktemp
 #else
     #include <utime.h>
     #include <sys/types.h>
@@ -127,6 +132,8 @@ typedef struct {
     char GpsLat[31];
     char GpsLong[31];
     char GpsAlt[20];
+
+    int  QualityGuess;
 }ImageInfo_t;
 
 
@@ -144,14 +151,13 @@ typedef enum {
 
 
 // prototypes for jhead.c functions
-void ErrFatal(char * msg);
-void ErrNonfatal(char * msg, int a1, int a2);
+void ErrFatal(const char * msg);
+void ErrNonfatal(const char * msg, int a1, int a2);
 void FileTimeAsString(char * TimeStr);
 
 // Prototypes for exif.c functions.
 int Exif2tm(struct tm * timeptr, char * ExifTime);
 void process_EXIF (unsigned char * CharBuf, unsigned int length);
-int RemoveThumbnail(unsigned char * ExifSection);
 void ShowImageInfo(int ShowFileInfo);
 void ShowConciseImageInfo(void);
 const char * ClearOrientation(void);
@@ -187,7 +193,7 @@ extern void ProcessMakerNote(unsigned char * DirStart, int ByteCount,
                  unsigned char * OffsetBase, unsigned ExifLength);
 
 // gpsinfo.c prototypes
-void ProcessGpsInfo(unsigned char * ValuePtr, int ByteCount, 
+void ProcessGpsInfo(unsigned char * ValuePtr,  
                 unsigned char * OffsetBase, unsigned ExifLength);
 
 // iptc.c prototpyes
@@ -218,6 +224,9 @@ Section_t * FindSection(int SectionType);
 Section_t * CreateSection(int SectionType, unsigned char * Data, int size);
 void ResetJpgfile(void);
 
+// Prototypes from jpgqguess.c
+void process_DQT (const uchar * Data, int length);
+void process_DHT (const uchar * Data, int length);
 
 // Variables from jhead.c used by exif.c
 extern ImageInfo_t ImageInfo;
@@ -249,7 +258,7 @@ extern int ShowTags;
 #define M_EXIF  0xE1          // Exif marker.  Also used for XMP data!
 #define M_XMP   0x10E1        // Not a real tag (same value in file as Exif!)
 #define M_COM   0xFE          // COMment 
-#define M_DQT   0xDB
-#define M_DHT   0xC4
+#define M_DQT   0xDB          // Define Quantization Table
+#define M_DHT   0xC4          // Define Huffmann Table
 #define M_DRI   0xDD
 #define M_IPTC  0xED          // IPTC marker
